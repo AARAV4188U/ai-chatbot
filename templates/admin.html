@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: white; }
+        header { background: #16213e; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        header h1 { font-size: 18px; }
+        .lo { padding: 7px 15px; background: #e94560; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .tabs { display: flex; background: #16213e; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 0 28px; }
+        .tb { padding: 12px 18px; background: none; color: rgba(255,255,255,0.5); border: none; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; transition: 0.2s; }
+        .tb.active { color: white; border-bottom-color: #e94560; }
+        .content { padding: 25px 28px; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #16213e; padding: 10px 8px; text-align: left; color: rgba(255,255,255,0.6); }
+        td { padding: 9px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .badge { padding: 2px 7px; border-radius: 8px; font-size: 10px; font-weight: bold; }
+        .bf { background: rgba(255,255,255,0.08); }
+        .bp { background: rgba(33,150,243,0.25); color: #64b5f6; }
+        .bpr { background: rgba(156,39,176,0.25); color: #ce93d8; }
+        .bpl { background: rgba(255,215,0,0.2); color: gold; }
+        .ban-b { background: rgba(255,50,50,0.2); color: #ff6b6b; }
+        .ab { padding: 4px 9px; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 3px; }
+        .a-ban { background: rgba(255,100,0,0.2); color: orange; }
+        .a-unban { background: rgba(0,200,0,0.2); color: lightgreen; }
+        .a-del { background: rgba(255,50,50,0.2); color: #ff6b6b; }
+        .a-res { background: rgba(33,150,243,0.2); color: #64b5f6; }
+        .a-tier { background: rgba(156,39,176,0.2); color: #ce93d8; }
+        .stats { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat { background: #16213e; padding: 18px 22px; border-radius: 10px; }
+        .stat h3 { font-size: 26px; color: #e94560; }
+        .stat p { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 3px; }
+        .tf { background: #16213e; padding: 18px; border-radius: 10px; margin-bottom: 18px; }
+        .tf h3 { margin-bottom: 12px; font-size: 15px; }
+        .tf input { width: 100%; padding: 9px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 6px; font-size: 13px; outline: none; margin-bottom: 8px; }
+        .add-btn { padding: 9px 18px; background: #e94560; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 99; }
+        .modal.show { display: flex; }
+        .mc { background: #16213e; padding: 24px; border-radius: 12px; width: 360px; }
+        .mc h3 { margin-bottom: 14px; }
+        .mc input { width: 100%; padding: 9px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 6px; margin-bottom: 12px; outline: none; }
+        .mc-btns { display: flex; gap: 8px; }
+        .mc-btns button { flex: 1; padding: 9px; border: none; border-radius: 6px; cursor: pointer; }
+        .b-ok { background: #e94560; color: white; }
+        .b-cl { background: rgba(255,255,255,0.08); color: white; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>🛡️ Admin Dashboard</h1>
+    <div>
+        <span id="aname" style="color:rgba(255,255,255,0.6);font-size:13px;margin-right:14px;"></span>
+        <button class="lo" onclick="logout()">Logout</button>
+    </div>
+</header>
+<div class="tabs">
+    <button class="tb active" onclick="showTab('users', this)">👥 Users</button>
+    <button class="tb" onclick="showTab('training', this)">🧠 Training</button>
+    <button class="tb" onclick="showTab('convos', this)">💬 Conversations</button>
+</div>
+<div class="content">
+    <div id="usersPane" class="tab-pane active">
+        <div class="stats" id="stats"></div>
+        <table><thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Tier</th><th>Status</th><th>Msgs Today</th><th>Actions</th></tr></thead>
+        <tbody id="utbody"></tbody></table>
+    </div>
+    <div id="trainingPane" class="tab-pane">
+        <div class="tf">
+            <h3>Add Training Data</h3>
+            <input type="text" id="tq" placeholder="Question (e.g. What is Python?)">
+            <input type="text" id="ta" placeholder="Correct Answer">
+            <button class="add-btn" onclick="addTraining()">Add</button>
+        </div>
+        <table><thead><tr><th>ID</th><th>Question</th><th>Answer</th><th>Used</th><th>Date</th></tr></thead>
+        <tbody id="ttbody"></tbody></table>
+    </div>
+    <div id="convosPane" class="tab-pane">
+        <table><thead><tr><th>User</th><th>Question</th><th>AI Answer</th><th>Confidence</th><th>Time</th></tr></thead>
+        <tbody id="ctbody"></tbody></table>
+    </div>
+</div>
+<div class="modal" id="modal">
+    <div class="mc">
+        <h3>Reset Password</h3>
+        <input type="password" id="newpw" placeholder="New password">
+        <div class="mc-btns">
+            <button class="b-cl" onclick="closeModal()">Cancel</button>
+            <button class="b-ok" onclick="doReset()">Reset</button>
+        </div>
+    </div>
+</div>
+<script>
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.is_admin) window.location.href = '/';
+    document.getElementById('aname').textContent = '👤 ' + user.username;
+    let selUid = null;
+
+    function showTab(t, btn) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tb').forEach(b => b.classList.remove('active'));
+        document.getElementById(t + 'Pane').classList.add('active');
+        btn.classList.add('active');
+        if (t === 'users') loadUsers();
+        if (t === 'training') loadTraining();
+        if (t === 'convos') loadConvos();
+    }
+
+    async function loadUsers() {
+        const res = await fetch('/api/admin/users?admin_id=' + user.user_id);
+        const data = await res.json();
+        const us = data.users;
+        document.getElementById('stats').innerHTML =
+            stat(us.length, 'Total Users') +
+            stat(us.filter(u=>u.is_banned).length, 'Banned') +
+            stat(us.filter(u=>!u.is_admin).length, 'Regular') +
+            stat(us.filter(u=>u.tier==='plus').length, 'Plus Tier');
+        const tb = document.getElementById('utbody');
+        tb.innerHTML = '';
+        us.forEach(u => {
+            const tr = document.createElement('tr');
+            const tierClass = {free:'bf',premium:'bp',pro:'bpr',plus:'bpl'}[u.tier] || 'bf';
+            tr.innerHTML = `<td>${u.id}</td><td>${u.username}</td><td style="font-size:11px;color:rgba(255,255,255,0.6)">${u.email}</td>
+            <td><span class="badge ${tierClass}">${u.tier}</span>${u.is_admin?'<span class="badge" style="background:rgba(233,69,96,0.3);color:#e94560;margin-left:3px">ADMIN</span>':''}</td>
+            <td>${u.is_banned?'<span class="badge ban-b">BANNED</span>':'✅ Active'}</td>
+            <td>${u.messages_today}</td>
+            <td>${!u.is_admin?`
+                ${u.is_banned?`<button class="ab a-unban" onclick="ban(${u.id},false)">Unban</button>`:`<button class="ab a-ban" onclick="ban(${u.id},true)">Ban</button>`}
+                <button class="ab a-res" onclick="openReset(${u.id})">Reset PW</button>
+                <button class="ab a-tier" onclick="setTier(${u.id})">Set Tier</button>
+                <button class="ab a-del" onclick="delUser(${u.id})">Delete</button>
+            `:'<span style="opacity:0.3">Admin</span>'}</td>`;
+            tb.appendChild(tr);
+        });
+    }
+
+    function stat(n, label) {
+        return `<div class="stat"><h3>${n}</h3><p>${label}</p></div>`;
+    }
+
+    async function ban(uid, doBan) {
+        await post('/api/admin/ban', {admin_id: user.user_id, user_id: uid, ban: doBan});
+        loadUsers();
+    }
+
+    async function delUser(uid) {
+        if (!confirm('Delete this user permanently?')) return;
+        await post('/api/admin/delete-user', {admin_id: user.user_id, user_id: uid});
+        loadUsers();
+    }
+
+    async function setTier(uid) {
+        const tier = prompt('Enter tier (free / premium / pro / plus):');
+        if (!tier) return;
+        await post('/api/admin/set-tier', {admin_id: user.user_id, user_id: uid, tier});
+        loadUsers();
+    }
+
+    function openReset(uid) { selUid = uid; document.getElementById('modal').classList.add('show'); }
+    function closeModal() { document.getElementById('modal').classList.remove('show'); selUid = null; }
+
+    async function doReset() {
+        const pw = document.getElementById('newpw').value;
+        if (!pw) return;
+        await post('/api/admin/reset-password', {admin_id: user.user_id, user_id: selUid, new_password: pw});
+        closeModal();
+        alert('Password reset!');
+    }
+
+    async function loadTraining() {
+        const res = await fetch('/api/admin/training-data?admin_id=' + user.user_id);
+        const data = await res.json();
+        const tb = document.getElementById('ttbody');
+        tb.innerHTML = '';
+        data.training_data.forEach(d => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${d.id}</td><td>${d.query}</td><td>${d.answer}</td><td>${d.usage_count}</td><td style="font-size:11px;opacity:0.5">${d.created_at ? d.created_at.split('T')[0] : ''}</td>`;
+            tb.appendChild(tr);
+        });
+    }
+
+    async function addTraining() {
+        const q = document.getElementById('tq').value;
+        const a = document.getElementById('ta').value;
+        if (!q || !a) return alert('Fill in both fields');
+        await post('/api/admin/add-training', {admin_id: user.user_id, query: q, answer: a});
+        document.getElementById('tq').value = '';
+        document.getElementById('ta').value = '';
+        loadTraining();
+    }
+
+    async function loadConvos() {
+        const res = await fetch('/api/admin/conversations?admin_id=' + user.user_id);
+        const data = await res.json();
+        const tb = document.getElementById('ctbody');
+        tb.innerHTML = '';
+        data.conversations.forEach(c => {
+            const tr = document.createElement('tr');
+            const col = c.confidence > 70 ? '#4caf50' : c.confidence > 50 ? 'orange' : '#e94560';
+            tr.innerHTML = `<td>${c.username}<br><small style="opacity:0.4">${c.email}</small></td>
+            <td style="max-width:200px">${c.user_message}</td>
+            <td style="max-width:200px">${c.ai_response}</td>
+            <td style="color:${col}">${c.confidence}%</td>
+            <td style="font-size:11px;opacity:0.4">${c.created_at ? c.created_at.split('.')[0] : ''}</td>`;
+            tb.appendChild(tr);
+        });
+    }
+
+    async function post(url, body) {
+        return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    }
+
+    function logout() { localStorage.removeItem('user'); window.location.href = '/'; }
+    loadUsers();
+</script>
+</body>
+</html>

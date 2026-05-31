@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; height: 100vh; display: flex; overflow: hidden; }
+        .sidebar { width: 250px; background: #16213e; display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.08); }
+        .sh { padding: 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .sh h2 { font-size: 17px; margin-bottom: 12px; }
+        .new-btn { width: 100%; padding: 9px; background: #e94560; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; }
+        .sessions { flex: 1; overflow-y: auto; padding: 8px; }
+        .sess { padding: 9px 12px; border-radius: 7px; cursor: pointer; font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sess:hover, .sess.active { background: rgba(255,255,255,0.08); color: white; }
+        .sf { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 12px; }
+        .uname { color: rgba(255,255,255,0.7); margin-bottom: 5px; }
+        .tier { display: inline-block; padding: 2px 8px; background: #e94560; border-radius: 10px; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; }
+        .lo-btn { width: 100%; padding: 7px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6); border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .ch { padding: 14px 20px; background: #16213e; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 15px; font-weight: 600; }
+        .msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .bubble { max-width: 72%; padding: 11px 15px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
+        .u-bub { background: #e94560; align-self: flex-end; border-bottom-right-radius: 3px; }
+        .a-bub { background: rgba(255,255,255,0.09); align-self: flex-start; border-bottom-left-radius: 3px; }
+        .conf { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 4px; display: block; }
+        .fb-box { background: rgba(255,200,0,0.08); border: 1px solid rgba(255,200,0,0.25); border-radius: 12px; padding: 12px 15px; align-self: flex-start; max-width: 72%; }
+        .fb-box p { font-size: 13px; margin-bottom: 8px; color: rgba(255,255,255,0.8); }
+        .fb-btns { display: flex; gap: 7px; }
+        .fb-btns button { padding: 5px 13px; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .b-yes { background: #4caf50; color: white; }
+        .b-no { background: #e94560; color: white; }
+        .b-sub { background: #2196F3; color: white; }
+        .corr-in { width: 100%; padding: 7px 10px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 6px; font-size: 13px; margin-top: 8px; outline: none; }
+        .ia { padding: 14px 18px; background: #16213e; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 10px; }
+        .mi { flex: 1; padding: 11px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 22px; font-size: 14px; outline: none; }
+        .mi:focus { border-color: #e94560; }
+        .sb { padding: 11px 18px; background: #e94560; color: white; border: none; border-radius: 22px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .sb:disabled { opacity: 0.4; cursor: not-allowed; }
+        .empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgba(255,255,255,0.25); }
+        .empty h3 { font-size: 22px; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="sh">
+        <h2>🤖 AI Chatbot</h2>
+        <button class="new-btn" onclick="newChat()">+ New Chat</button>
+    </div>
+    <div class="sessions" id="sessions"></div>
+    <div class="sf">
+        <div class="uname" id="uname"></div>
+        <div class="tier" id="utier"></div>
+        <br><br>
+        <button class="lo-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+<div class="main">
+    <div class="ch" id="ch">Select or create a chat</div>
+    <div class="msgs" id="msgs">
+        <div class="empty"><h3>👋 Welcome!</h3><p>Create a new chat to get started</p></div>
+    </div>
+    <div class="ia">
+        <input class="mi" id="mi" type="text" placeholder="Type a message..." onkeypress="if(event.key==='Enter')send()" disabled>
+        <button class="sb" id="sb" onclick="send()" disabled>Send</button>
+    </div>
+</div>
+<script>
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) window.location.href = '/';
+    document.getElementById('uname').textContent = '👤 ' + user.username;
+    document.getElementById('utier').textContent = user.tier;
+
+    let sid = null, lastMsg = null;
+
+    async function loadSessions() {
+        const res = await fetch('/api/chat/sessions?user_id=' + user.user_id);
+        const data = await res.json();
+        const el = document.getElementById('sessions');
+        el.innerHTML = '';
+        data.sessions.forEach(s => {
+            const d = document.createElement('div');
+            d.className = 'sess' + (s.id == sid ? ' active' : '');
+            d.textContent = '💬 ' + s.title;
+            d.onclick = () => loadSession(s.id, s.title);
+            el.appendChild(d);
+        });
+    }
+
+    async function newChat() {
+        const res = await fetch('/api/chat/new-session', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_id: user.user_id, title: 'Chat ' + new Date().toLocaleTimeString()})
+        });
+        const data = await res.json();
+        sid = data.session_id;
+        document.getElementById('msgs').innerHTML = '';
+        document.getElementById('ch').textContent = '💬 New Chat';
+        document.getElementById('mi').disabled = false;
+        document.getElementById('sb').disabled = false;
+        loadSessions();
+    }
+
+    async function loadSession(id, title) {
+        sid = id;
+        document.getElementById('ch').textContent = '💬 ' + title;
+        document.getElementById('mi').disabled = false;
+        document.getElementById('sb').disabled = false;
+        loadSessions();
+        const res = await fetch('/api/chat/messages?session_id=' + id);
+        const data = await res.json();
+        const el = document.getElementById('msgs');
+        el.innerHTML = '';
+        data.messages.forEach(m => addMsg(m.user_message, m.ai_response, m.confidence, false));
+    }
+
+    function addMsg(umsg, amsg, conf, askFb) {
+        const el = document.getElementById('msgs');
+        const wrap = document.createElement('div');
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.gap = '6px';
+
+        const u = document.createElement('div');
+        u.className = 'bubble u-bub';
+        u.textContent = umsg;
+
+        const a = document.createElement('div');
+        a.className = 'bubble a-bub';
+        a.innerHTML = amsg + '<span class="conf">Confidence: ' + conf + '%</span>';
+
+        wrap.appendChild(u);
+        wrap.appendChild(a);
+
+        if (askFb) {
+            const fb = document.createElement('div');
+            fb.className = 'fb-box';
+            fb.id = 'fb';
+            fb.innerHTML = '<p>🤔 Was this answer correct?</p>' +
+                '<div class="fb-btns">' +
+                '<button class="b-yes" onclick="fb(true)">✅ Yes</button>' +
+                '<button class="b-no" onclick="showCorr()">❌ No, teach me</button>' +
+                '</div>' +
+                '<div id="corrDiv" style="display:none">' +
+                '<input class="corr-in" id="corrIn" placeholder="What is the correct answer?">' +
+                '<div class="fb-btns" style="margin-top:8px"><button class="b-sub" onclick="fb(false)">Submit</button></div>' +
+                '</div>';
+            wrap.appendChild(fb);
+        }
+
+        el.appendChild(wrap);
+        el.scrollTop = el.scrollHeight;
+    }
+
+    function showCorr() { document.getElementById('corrDiv').style.display = 'block'; }
+
+    async function fb(correct) {
+        const ans = correct ? null : (document.getElementById('corrIn') ? document.getElementById('corrIn').value : null);
+        await fetch('/api/feedback', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_query: lastMsg, is_correct: correct, correct_answer: ans})
+        });
+        const box = document.getElementById('fb');
+        if (box) {
+            box.innerHTML = correct ? '<p>✅ Great! Thanks for confirming.</p>' : '<p>📚 Thank you! I learned from your correction.</p>';
+            setTimeout(() => box.remove(), 2500);
+        }
+    }
+
+    async function send() {
+        const inp = document.getElementById('mi');
+        const msg = inp.value.trim();
+        if (!msg || !sid) return;
+        inp.value = '';
+        lastMsg = msg;
+        document.getElementById('sb').disabled = true;
+
+        const el = document.getElementById('msgs');
+        const tmp = document.createElement('div');
+        tmp.className = 'bubble u-bub';
+        tmp.style.alignSelf = 'flex-end';
+        tmp.textContent = msg;
+        el.appendChild(tmp);
+
+        const ld = document.createElement('div');
+        ld.className = 'bubble a-bub';
+        ld.id = 'ld';
+        ld.textContent = '...';
+        el.appendChild(ld);
+        el.scrollTop = el.scrollHeight;
+
+        const res = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_id: user.user_id, session_id: sid, message: msg})
+        });
+        const data = await res.json();
+
+        tmp.remove();
+        document.getElementById('ld') && document.getElementById('ld').remove();
+
+        if (res.ok) {
+            addMsg(msg, data.response, data.confidence, data.ask_feedback);
+        } else {
+            const err = document.createElement('div');
+            err.className = 'bubble a-bub';
+            err.textContent = '⚠️ ' + (data.error || 'Error');
+            el.appendChild(err);
+        }
+        document.getElementById('sb').disabled = false;
+    }
+
+    function logout() { localStorage.removeItem('user'); window.location.href = '/'; }
+    loadSessions();
+</script>
+</body>
+</html>

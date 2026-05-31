@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot - Login</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .box {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            color: white;
+        }
+        h1 { text-align: center; margin-bottom: 8px; font-size: 28px; }
+        .sub { text-align: center; color: rgba(255,255,255,0.5); margin-bottom: 25px; font-size: 14px; }
+        .tabs { display: flex; background: rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 25px; overflow: hidden; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .tab.active { background: #e94560; }
+        .field { margin-bottom: 15px; }
+        label { display: block; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 5px; }
+        input { width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 8px; font-size: 14px; outline: none; }
+        input:focus { border-color: #e94560; }
+        button.submit { width: 100%; padding: 12px; background: #e94560; color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; margin-top: 5px; }
+        button.submit:hover { background: #c73652; }
+        .msg { padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 13px; display: none; }
+        .err { background: rgba(255,50,50,0.2); border: 1px solid rgba(255,50,50,0.4); display: block; }
+        .ok { background: rgba(50,255,100,0.2); border: 1px solid rgba(50,255,100,0.4); display: block; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h1>🤖 AI Chatbot</h1>
+    <p class="sub">Your intelligent learning assistant</p>
+
+    <div class="tabs">
+        <div class="tab active" id="tabLogin" onclick="showTab('login')">Login</div>
+        <div class="tab" id="tabSignup" onclick="showTab('signup')">Sign Up</div>
+    </div>
+
+    <div id="msg" class="msg"></div>
+
+    <div id="loginForm">
+        <div class="field"><label>Email</label><input type="email" id="lEmail" placeholder="your@email.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="lPass" placeholder="Your password"></div>
+        <button class="submit" onclick="doLogin()">Login</button>
+    </div>
+
+    <div id="signupForm" class="hidden">
+        <div class="field"><label>Username</label><input type="text" id="sUser" placeholder="Choose a username"></div>
+        <div class="field"><label>Email</label><input type="email" id="sEmail" placeholder="your@email.com"></div>
+        <div class="field"><label>Password</label><input type="password" id="sPass" placeholder="Create a password"></div>
+        <button class="submit" onclick="doSignup()">Create Account</button>
+    </div>
+</div>
+<script>
+    if (localStorage.getItem('user')) {
+        const u = JSON.parse(localStorage.getItem('user'));
+        window.location.href = u.is_admin ? '/admin' : '/chat';
+    }
+
+    function showTab(t) {
+        document.getElementById('loginForm').classList.toggle('hidden', t !== 'login');
+        document.getElementById('signupForm').classList.toggle('hidden', t !== 'signup');
+        document.getElementById('tabLogin').classList.toggle('active', t === 'login');
+        document.getElementById('tabSignup').classList.toggle('active', t === 'signup');
+        document.getElementById('msg').className = 'msg';
+    }
+
+    function showMsg(text, type) {
+        const el = document.getElementById('msg');
+        el.textContent = text;
+        el.className = 'msg ' + type;
+    }
+
+    async function doLogin() {
+        const email = document.getElementById('lEmail').value;
+        const password = document.getElementById('lPass').value;
+        if (!email || !password) return showMsg('Fill in all fields', 'err');
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, password})
+        });
+        const data = await res.json();
+        if (res.ok) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+            window.location.href = data.user.is_admin ? '/admin' : '/chat';
+        } else {
+            showMsg(data.error || 'Login failed', 'err');
+        }
+    }
+
+    async function doSignup() {
+        const username = document.getElementById('sUser').value;
+        const email = document.getElementById('sEmail').value;
+        const password = document.getElementById('sPass').value;
+        if (!username || !email || !password) return showMsg('Fill in all fields', 'err');
+        const res = await fetch('/api/signup', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username, email, password})
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showMsg('Account created! Please login.', 'ok');
+            showTab('login');
+        } else {
+            showMsg(data.error || 'Signup failed', 'err');
+        }
+    }
+</script>
+</body>
+</html>
